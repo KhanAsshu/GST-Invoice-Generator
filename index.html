@@ -32,10 +32,14 @@
         </div>
     </div>
 
+    <div class="profile-toolbar">
+        <div><strong id="profileStatus">Company profile not saved</strong><p>Save once. Your details and logo will load automatically on this browser.</p></div>
+        <button type="button" id="editProfileBtn" onclick="toggleProfileSettings()">⚙ Company Settings</button>
+    </div>
     <!-- =========================
          COMPANY DETAILS
     ========================= -->
-    <div class="section-box">
+    <div class="section-box profile-settings" id="companySettings">
         <h2>Company Details</h2>
         <div class="details-grid">
             <div>
@@ -70,6 +74,10 @@
         </div>
     </div>
 
+    <div class="profile-settings profile-save-actions" id="profileSaveActions">
+        <button type="button" onclick="saveCompanyProfile()">Save Company Profile</button>
+        <button type="button" class="profile-reset" onclick="clearCompanyProfile()">Clear Saved Profile</button>
+    </div>
     <!-- =========================
          INVOICE DETAILS
     ========================= -->
@@ -336,7 +344,7 @@
     ========================= -->
     <div class="bottom-details">
         <!-- BANK DETAILS -->
-        <div class="invoice-info-box">
+        <div class="invoice-info-box profile-bank-box">
             <h2>Bank Details</h2>
             <div class="bottom-grid">
                 <div>

@@ -285,14 +285,28 @@ document.getElementById("companyName").addEventListener("input", function () {
 });
 
 function previewLogo(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        return;
-    }
-
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("Please select an image."); return; }
     const reader = new FileReader();
-    reader.onload = function (e) {
-        document.getElementById("logoPreview").innerHTML = `<img src="${e.target.result}" alt="Company Logo">`;
+    reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, 600 / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            profileLogoData = canvas.toDataURL("image/png");
+            const preview = document.getElementById("logoPreview");
+            preview.replaceChildren();
+            const logo = document.createElement("img");
+            logo.src = profileLogoData; logo.alt = "Company Logo";
+            preview.appendChild(logo);
+            if (localStorage.getItem(PROFILE_KEY)) saveCompanyProfile(true);
+        };
+        img.onerror = () => alert("Unable to read logo image.");
+        img.src = reader.result;
     };
     reader.readAsDataURL(file);
 }
@@ -724,3 +738,83 @@ async function downloadInvoicePDF() {
         }
     }
 }
+
+// ===== SAVED COMPANY PROFILE (device/browser-specific) =====
+const PROFILE_KEY = "gst_invoice_company_profile_v1";
+const PROFILE_FIELDS = ["companyName", "companyGSTIN", "companyPhone", "companyEmail", "companyAddress", "bankName", "accountHolder", "accountNumber", "ifscCode", "bankBranch", "upiId", "termsConditions", "authorizedName"];
+let profileLogoData = "";
+let profileOpen = true;
+function setProfileOpen(open) {
+    profileOpen = open;
+    document.querySelectorAll(".profile-settings").forEach(el => el.style.display = open ? "" : "none");
+    const btn = document.getElementById("editProfileBtn");
+    if (btn) btn.textContent = open ? "Close Company Settings" : "⚙ Company Settings";
+}
+function toggleProfileSettings() { setProfileOpen(!profileOpen); }
+function updateProfileStatus(saved) {
+    const el = document.getElementById("profileStatus");
+    if (el) el.textContent = saved ? "✓ Company profile saved on this browser" : "Company profile not saved — set up once";
+}
+function getProfileData() {
+    const data = {};
+    PROFILE_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        data[id] = el ? el.value : "";
+    });
+    data.logo = profileLogoData;
+    return data;
+}
+function saveCompanyProfile(silent = false) {
+    const name = document.getElementById("companyName").value.trim();
+    if (!name) { if (!silent) alert("Please enter Company Name first."); return false; }
+    try {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(getProfileData()));
+        updateProfileStatus(true);
+        if (!silent) { setProfileOpen(false); alert("Company profile saved! It will load automatically next time."); }
+        return true;
+    } catch (e) {
+        if (!silent) alert("Unable to save profile. Try a smaller logo or check browser storage settings.");
+        return false;
+    }
+}
+function loadCompanyProfile() {
+    try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (!raw) { setProfileOpen(true); updateProfileStatus(false); return; }
+        const data = JSON.parse(raw);
+        PROFILE_FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && typeof data[id] === "string") el.value = data[id];
+        });
+        profileLogoData = typeof data.logo === "string" ? data.logo : "";
+        if (profileLogoData) {
+            const logo = document.getElementById("logoPreview");
+            logo.replaceChildren();
+            const img = document.createElement("img");
+            img.src = profileLogoData; img.alt = "Company Logo";
+            logo.appendChild(img);
+        }
+        document.getElementById("companyPreview").textContent = data.companyName || "Your Company Name";
+        updateProfileStatus(true);
+        setProfileOpen(false);
+    } catch (e) { console.warn("Unable to load saved company profile",e); setProfileOpen(true); }
+}
+function clearCompanyProfile() {
+    if (!confirm("Delete the saved company profile from this browser?")) return;
+    localStorage.removeItem(PROFILE_KEY);
+    PROFILE_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    profileLogoData = "";
+    document.getElementById("logoPreview").textContent = "LOGO";
+    document.getElementById("companyPreview").textContent = "Your Company Name";
+    updateProfileStatus(false); setProfileOpen(true);
+}
+document.addEventListener("DOMContentLoaded", () => {
+    loadCompanyProfile();
+    // Keep saved bank/terms details up to date after edits.
+    [...PROFILE_FIELDS].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", () => {
+            if (localStorage.getItem(PROFILE_KEY)) saveCompanyProfile(true);
+        });
+    });
+});

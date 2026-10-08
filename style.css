@@ -737,3 +737,10 @@ th {
     background: #666;
     color: white;
 }
+/* Saved company profile controls */
+.profile-toolbar {display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;margin-bottom:20px;background:#edf4fa;border:1px solid #b7cee2;border-radius:8px;}
+.profile-toolbar p {margin:5px 0 0;color:#4c6071;font-size:13px;}
+.profile-toolbar button,.profile-save-actions button {background:#1f4e78;color:white;border:0;border-radius:5px;padding:12px 17px;cursor:pointer;font-weight:bold;}
+.profile-save-actions {display:flex;gap:12px;margin:-8px 0 25px;}
+.profile-save-actions .profile-reset {background:#777;}
+@media(max-width:600px){.profile-toolbar{flex-direction:column;align-items:stretch}.profile-save-actions{flex-wrap:wrap}}
